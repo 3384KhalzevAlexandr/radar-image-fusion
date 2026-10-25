@@ -4,12 +4,12 @@
 #include <math.h>
 
 #define PI 3.14159265358979323846
-#define POINT_RADIUS 2          // было 1 — точки видимее
-#define MAX_IMG_DIM 1000        // было 4000 — карта компактнее
+#define POINT_RADIUS 2          
+#define MAX_IMG_DIM 1000        
 
 typedef struct {
-    double angle;   // градусы
-    double range;   // метры (или любые реальные единицы)
+    double angle;   
+    double range;   
     double value;
     int valid;
 } Measurement;
@@ -29,9 +29,6 @@ static size_t count = 0;
 static double min_range, max_range;
 static double min_value, max_value;
 
-/* ============================================================
- *  Загрузка CSV (формат: track,angle,sample,range,value)
- * ============================================================ */
 static int load_csv(const char *filename)
 {
     FILE *file = fopen(filename, "r");
@@ -70,13 +67,6 @@ static int load_csv(const char *filename)
     return count > 0;
 }
 
-/* ============================================================
- *  Перевод полярных (angle, range) -> декартовы (X, Y)
- *
- *  θ = 0°   ->  вперёд (ось +Y)
- *  θ = +90° ->  вправо (ось +X)
- *  θ = -90° ->  влево  (ось -X)
- * ============================================================ */
 static void polar_to_xy(double angle_deg, double range,
                         double *out_x, double *out_y)
 {
@@ -85,9 +75,6 @@ static void polar_to_xy(double angle_deg, double range,
     *out_y = range * cos(a);
 }
 
-/* ============================================================
- *  Цвет по значению (синий -> красный)
- * ============================================================ */
 static Pixel value_to_color(double value)
 {
     double t = 0.5;
@@ -111,9 +98,6 @@ static Pixel value_to_color(double value)
     return c;
 }
 
-/* ============================================================
- *  Инициализация / установка пикселя
- * ============================================================ */
 static void image_init(Image *im, int w, int h)
 {
     im->w = w; im->h = h;
@@ -137,12 +121,8 @@ static void draw_point(Image *im, int x, int y, Pixel c)
                 set_pixel(im, x + dx, y + dy, c);
 }
 
-/* ============================================================
- *  Построение декартовой карты
- * ============================================================ */
 static void build_cartesian(Image *im)
 {
-    /* 1. Вычислить охват в метрах: X_min..X_max, Y_min..Y_max */
     double xmin =  1e30, xmax = -1e30;
     double ymin =  1e30, ymax = -1e30;
 
@@ -164,7 +144,6 @@ static void build_cartesian(Image *im)
     printf("Ground extent: X = %.2f .. %.2f  (span %.2f)\n", xmin, xmax, span_x);
     printf("               Y = %.2f .. %.2f  (span %.2f)\n", ymin, ymax, span_y);
 
-    /* 2. Выбрать размер картинки по аспекту охвата */
     double aspect = span_x / span_y;
     int W, H;
     if (aspect >= 1.0) {
@@ -180,17 +159,14 @@ static void build_cartesian(Image *im)
 
     image_init(im, W, H);
 
-    /* 3. Масштабы: метры -> пиксели */
     double scale_x = (W - 1) / span_x;
     double scale_y = (H - 1) / span_y;
 
-    /* 4. Разбросать точки */
     for (size_t i = 0; i < count; i++) {
         if (!data[i].valid) continue;
         double x, y;
         polar_to_xy(data[i].angle, data[i].range, &x, &y);
 
-        /* в пиксели; Y инвертируем (в картинке Y растёт вниз) */
         int px = (int)round((x - xmin) * scale_x);
         int py = (int)round((ymax - y) * scale_y);
 
@@ -199,9 +175,6 @@ static void build_cartesian(Image *im)
     }
 }
 
-/* ============================================================
- *  Сохранение PPM
- * ============================================================ */
 static int save_ppm(const char *filename, const Image *im)
 {
     FILE *f = fopen(filename, "w");
@@ -219,9 +192,6 @@ static int save_ppm(const char *filename, const Image *im)
     return 1;
 }
 
-/* ============================================================
- *  main
- * ============================================================ */
 int main(int argc, char **argv)
 {
     const char *in  = (argc > 1) ? argv[1] : "../data/radar.csv";
